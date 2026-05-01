@@ -1,0 +1,197 @@
+================================================================
+        ADAPTIVE AUTHENTICATION SYSTEM — PROJECT REPORT
+================================================================
+Date        : April 28, 2026
+Developer   : Pawan
+Machine     : MacBook Air M1
+Language    : Python 3.13
+Framework   : FastAPI
+
+
+----------------------------------------------------------------
+1. PROJECT OVERVIEW
+----------------------------------------------------------------
+We built a backend authentication service with an intelligent
+risk engine. This is not a basic login system — it detects
+suspicious activity on every login attempt by combining multiple
+signals and assigning a risk score dynamically.
+
+This mirrors how real-world fintech and enterprise security
+systems work (e.g. Google, banks, payment gateways).
+
+Even though their system consist of this rule base + anamoly detection(ML) means
+multiple system decides risk score.
+
+----------------------------------------------------------------
+2. TECH STACK
+----------------------------------------------------------------
+Backend Framework   : FastAPI (Python)
+Database            : PostgreSQL 15 (via Docker)
+Cache               : Redis 7 (via Docker)
+ORM                 : SQLAlchemy 2.0
+Authentication      : JWT (JSON Web Tokens) via python-jose
+Password Hashing    : passlib + bcrypt 4.0.1
+Data Validation     : Pydantic v2
+Geolocation         : ip-api.com (free API)
+Server              : Uvicorn (ASGI)
+Environment Config  : python-dotenv
+
+
+----------------------------------------------------------------
+3. PROJECT STRUCTURE
+----------------------------------------------------------------
+AdaptiveAuthSystem/
+├── app/
+│   ├── main.py                  # FastAPI entry point
+│   ├── database.py              # PostgreSQL connection
+│   ├── models.py                # Database table definitions
+│   ├── schemas.py               # Request/Response shapes
+│   ├── routers/
+│   │   ├── auth.py              # /signup, /login endpoints
+│   │   └── user.py              # /me, /me/login-history endpoints
+│   ├── services/
+│   │   ├── risk_engine.py       # Core risk scoring logic
+│   │   ├── geo_service.py       # IP to location lookup
+│   │   └── device_service.py   # Device fingerprinting
+│   └── utils/
+│       ├── hashing.py           # Password hash/verify
+│       └── jwt.py               # Token create/verify
+├── requirements.txt
+├── .env
+└── docker-compose.yml
+
+
+----------------------------------------------------------------
+4. DATABASE SCHEMA (4 Tables)
+----------------------------------------------------------------
+TABLE 1: users
+  - id, email, password_hash, is_active, created_at
+
+TABLE 2: login_history  ← CORE of risk engine
+  - id, user_id, ip_address, location, device,
+    login_time, status, risk_score
+
+TABLE 3: known_devices
+  - id, user_id, device_hash, last_used
+
+TABLE 4: failed_attempts
+  - id, user_id, ip_address, attempted_at
+
+
+----------------------------------------------------------------
+5. API ENDPOINTS
+----------------------------------------------------------------
+POST   /auth/signup              Register a new user
+POST   /auth/login               Login + runs risk engine
+GET    /user/me                  Get current user profile (protected)
+GET    /user/me/login-history    Get last 10 logins with risk scores (protected)
+
+
+----------------------------------------------------------------
+6. RISK ENGINE — HOW IT WORKS
+----------------------------------------------------------------
+On every login, the system collects signals and scores them:
+
+  SIGNAL                        RISK POINTS
+  ─────────────────────────────────────────
+  New/unrecognized device    →  +20
+  Location change            →  +40
+  Unusual login time         →  +10
+  Multiple failed attempts   →  +30
+  Too many requests (Redis)  →  +50
+  ─────────────────────────────────────────
+
+  DECISION ENGINE:
+  Score 0  – 29   →  allow
+  Score 30 – 69   →  require_otp
+  Score 70 – 99   →  require_otp
+  Score 100+      →  block login
+
+
+----------------------------------------------------------------
+7. KEY FEATURES IMPLEMENTED
+----------------------------------------------------------------
+✅ User signup with bcrypt password hashing
+✅ JWT token generation and verification
+✅ Risk engine with 5 detection signals
+✅ Device fingerprinting (Browser + OS detection)
+✅ Geolocation from IP address (ip-api.com)
+✅ Redis-based rate limiting (per IP, 60s window)
+✅ Login history tracking with risk scores
+✅ Protected routes with HTTP Bearer authentication
+✅ Automatic DB table creation on startup
+✅ Swagger UI with HTTPBearer authorization support
+
+
+----------------------------------------------------------------
+8. SECURITY HIGHLIGHTS
+----------------------------------------------------------------
+- Passwords never stored in plain text (bcrypt hashed)
+- JWT tokens expire after 30 minutes
+- Brute force protection via Redis rate limiting
+- Risk scoring blocks suspicious logins automatically
+- Device fingerprint stored as MD5 hash
+- No sensitive data exposed in API responses
+
+
+----------------------------------------------------------------
+9. BUGS FIXED DURING DEVELOPMENT
+----------------------------------------------------------------
+Issue 1: passlib + bcrypt 5.0 incompatibility
+  Fix   : Downgraded bcrypt to 4.0.1
+
+Issue 2: zsh treating passlib[bcrypt] as glob pattern
+  Fix   : Quoted "passlib[bcrypt]" in pip install command
+
+Issue 3: Missing email-validator for Pydantic EmailStr
+  Fix   : pip install "pydantic[email]"
+
+Issue 4: Swagger OAuth2 form not working with our login
+  Fix   : Switched to HTTPBearer security scheme
+
+
+----------------------------------------------------------------
+10. SAMPLE RISK ENGINE RESPONSE
+----------------------------------------------------------------
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs......",
+  "token_type": "bearer",
+  "risk_assessment": {
+    "user_id": 1,
+    "risk_score": 20,
+    "action": "allow",
+    "reasons": ["Login from an unrecognized device"]
+  }
+}
+
+
+----------------------------------------------------------------
+11. WHAT REMAINS (NEXT STEPS)
+----------------------------------------------------------------
+[ ] Deployment on Render (live public URL)
+[ ] OTP verification flow (when action = require_otp)
+[ ] Impossible travel detection (geo distance calculation)
+[ ] Risk score decay over time
+[ ] Simple ML model for behavioral analysis (advanced)
+[ ] Frontend UI (optional)
+
+
+----------------------------------------------------------------
+12. HOW TO RUN LOCALLY
+----------------------------------------------------------------
+Step 1: Activate virtual environment
+        source venv/bin/activate
+
+Step 2: Start PostgreSQL and Redis
+        docker-compose up -d
+
+Step 3: Start the server
+        uvicorn app.main:app --reload
+
+Step 4: Open Swagger UI
+        http://127.0.0.1:8000/docs
+
+
+================================================================
+                        END OF REPORT
+================================================================
