@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Float
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Float, ForeignKey
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -53,3 +53,16 @@ class FailedAttempt(Base):
     user_id    = Column(Integer, index=True, nullable=True)  # nullable if user doesn't exist
     ip_address = Column(String, nullable=False)
     attempted_at = Column(DateTime(timezone=True), server_default=func.now())
+
+from datetime import datetime
+
+class OTPVerification(Base):
+    __tablename__ = "otp_verifications"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    otp_code   = Column(String, nullable=False)      # bcrypt hashed
+    otp_token  = Column(String, nullable=False)      # session identifier
+    is_used    = Column(Boolean, default=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

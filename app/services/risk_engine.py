@@ -143,7 +143,7 @@ def calculate_risk(
         action = "block"
     elif risk_score >= 70:
         action = "require_otp"
-    elif risk_score >= 30:
+    elif risk_score > 10:
         action = "require_otp"
     else:
         action = "allow"

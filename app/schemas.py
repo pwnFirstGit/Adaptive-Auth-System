@@ -44,3 +44,7 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True  # allows reading from SQLAlchemy model
+
+class OTPVerifyRequest(BaseModel):
+    otp_token : str   # returned from /login
+    otp_code  : str   # 6-digit code from email

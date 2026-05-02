@@ -8,6 +8,7 @@ from app.models import User, LoginHistory, KnownDevice, FailedAttempt
 from app.schemas import SignupRequest, LoginRequest, TokenResponse, UserResponse
 from app.utils.hashing import hash_password, verify_password
 from app.utils.jwt import create_access_token
+from app.schemas import OTPVerifyRequest
 
 import hashlib
 
@@ -82,6 +83,39 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             "message": "Login blocked due to suspicious activity",
             "reasons": risk_result["reasons"]
         })
+    
+    if risk_result["action"]=="require_otp":
+        from app.utils.otp import generate_otp, hash_otp, otp_expiry
+        from app.services.email_service import send_otp_email
+        from app.utils.jwt import create_otp_token
+        from app.models import OTPVerification
+
+        raw_otp    = generate_otp()
+        otp_token  = create_otp_token(user.id)
+
+        otp_record = OTPVerification(
+            user_id    = user.id,
+            otp_code   = hash_otp(raw_otp),
+            otp_token  = otp_token,
+            expires_at = otp_expiry(minutes=10),
+        )
+        db.add(otp_record)
+        db.commit()
+
+        email_sent = send_otp_email(
+            to_email  = user.email,
+            otp_code  = raw_otp,
+            user_name = user.email
+        )
+
+        if not email_sent:
+            raise HTTPException(status_code=500, detail="Failed to send OTP. Try again.")
+
+        return {
+            "action"    : "require_otp",
+            "otp_token" : otp_token,
+            "message"   : "OTP sent to your registered email"
+        }
 
     # Save login history with risk score
     db.add(LoginHistory(
@@ -110,4 +144,50 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         "access_token": token,
         "token_type": "bearer",
         "risk_assessment": risk_result
+    }
+
+
+@router.post("/verify-otp")
+def verify_otp_endpoint(payload: OTPVerifyRequest, db: Session = Depends(get_db)):
+    from app.utils.otp import verify_otp
+    from app.utils.jwt import decode_otp_token, create_access_token
+    from app.models import OTPVerification
+    from datetime import datetime
+
+    # 1. Decode session
+    user_id = decode_otp_token(payload.otp_token)
+
+    # 2. Find the matching unused OTP record
+    record = (
+        db.query(OTPVerification)
+        .filter(
+            OTPVerification.user_id   == user_id,
+            OTPVerification.otp_token == payload.otp_token,
+            OTPVerification.is_used   == False,
+        )
+        .order_by(OTPVerification.created_at.desc())
+        .first()
+    )
+
+    if not record:
+        raise HTTPException(status_code=400, detail="No pending OTP found")
+
+    # 3. Check expiry
+    if datetime.utcnow() > record.expires_at:
+        raise HTTPException(status_code=400, detail="OTP has expired")
+
+    # 4. Verify code
+    if not verify_otp(payload.otp_code, record.otp_code):
+        raise HTTPException(status_code=400, detail="Incorrect OTP")
+
+    # 5. Mark used
+    record.is_used = True
+    db.commit()
+
+    # 6. Issue real access token
+    access_token = create_access_token(data={"sub": str(user_id)})
+    return {
+        "access_token" : access_token,
+        "token_type"   : "bearer",
+        "message"      : "OTP verified. Login successful."
     }

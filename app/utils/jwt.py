@@ -23,3 +23,22 @@ def verify_access_token(token: str) -> dict | None:
         return payload
     except JWTError:
         return None
+    
+def create_otp_token(user_id: int) -> str:
+    """Short-lived token to identify OTP session. NOT a real access token."""
+    expire = datetime.utcnow() + timedelta(minutes=15)
+    payload = {
+        "sub"  : str(user_id),
+        "type" : "otp_session",
+        "exp"  : expire
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def decode_otp_token(token: str) -> int:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "otp_session":
+            raise HTTPException(status_code=401, detail="Not an OTP token")
+        return int(payload["sub"])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP session")
