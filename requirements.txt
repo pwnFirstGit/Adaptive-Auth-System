@@ -1,3 +1,34 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+bcrypt==5.0.0
+certifi==2026.4.22
+charset-normalizer==3.4.7
+click==8.3.3
+ecdsa==0.19.2
+email-validator==2.2.0
+fastapi==0.136.1
+h11==0.16.0
+idna==3.13
+passlib==1.7.4
+psycopg2-binary==2.9.12
+pyasn1==0.6.3
+pydantic==2.13.3
+pydantic_core==2.46.3
+python-dotenv==1.2.2
+python-jose==3.5.0
+redis==7.4.0
+requests==2.33.1
+rsa==4.9.1
+six==1.17.0
+SQLAlchemy==2.0.49
+starlette==1.0.0
+typing-inspection==0.4.2
+=======
+>>>>>>> d0c8a73
 aext-assistant @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_d5fxz3l2ix/croot/aext-assistant_1746560160060/work
 aext-assistant-server @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_1emcn1_yt0/croot/aext-assistant-server_1746552985810/work
 aext-core @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_2eg8ig5bzd/croot/aext-core_1746546095117/work
@@ -381,6 +412,10 @@ trio-websocket==0.12.2
 truststore @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_a1qa3ogm4o/croot/truststore_1736550138575/work
 Twisted @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_512cr73nx1/croot/twisted_1743537786551/work
 typer @ file:///Users/builder/cbouss/perseverance-python-buildout/croot/typer_1728593478163/work
+<<<<<<< HEAD
+=======
+>>>>>>> 7c2e31e (Add email-validator to requirements)
+>>>>>>> d0c8a73
 typing_extensions==4.15.0
 tzdata @ file:///croot/python-tzdata_1746123641790/work
 uc-micro-py @ file:///Users/builder/cbouss/perseverance-python-buildout/croot/uc-micro-py_1728591501332/work
