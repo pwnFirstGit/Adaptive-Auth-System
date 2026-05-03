@@ -24,3 +24,36 @@ def get_location_from_ip(ip_address: str) -> str:
 
     except Exception:
         return "unknown"  # never crash login because of geo failure
+    
+    import requests
+
+def get_location_from_ip(ip_address: str) -> dict:
+    """
+    Get location and coordinates from IP address.
+    Returns dict with location, latitude, longitude.
+    """
+    try:
+        if ip_address in ("127.0.0.1", "localhost", "::1"):
+            return {
+                "location": "local",
+                "latitude": None,
+                "longitude": None
+            }
+
+        response = requests.get(
+            f"http://ip-api.com/json/{ip_address}",
+            timeout=3
+        )
+        data = response.json()
+
+        if data.get("status") == "success":
+            return {
+                "location":  f"{data.get('city', 'unknown')}, {data.get('country', 'unknown')}",
+                "latitude":  data.get("lat"),
+                "longitude": data.get("lon")
+            }
+
+        return {"location": "unknown", "latitude": None, "longitude": None}
+
+    except Exception:
+        return {"location": "unknown", "latitude": None, "longitude": None}

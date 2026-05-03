@@ -55,7 +55,10 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     device_label = device_info["device_label"]  # e.g. "Chrome_MacOS"
 
     from app.services.geo_service import get_location_from_ip
-    location = get_location_from_ip(ip_address)
+    geo_data  = get_location_from_ip(ip_address)
+    location  = geo_data["location"]
+    latitude  = geo_data["latitude"]
+    longitude = geo_data["longitude"]
 
     # Find user
     user = db.query(User).filter(User.email == payload.email).first()
@@ -74,6 +77,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         ip_address=ip_address,
         device_hash=device_hash,
         location=location,
+        latitude=latitude,
+        longitude=longitude,
         db=db
     )
 
@@ -121,6 +126,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         user_id=user.id,
         ip_address=ip_address,
         location=location,
+        latitude=latitude,
+        longitude=longitude,
         device=device_label,
         status="success",
         risk_score=risk_result["risk_score"]

@@ -3,6 +3,77 @@ import redis
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.models import LoginHistory, KnownDevice, FailedAttempt
+import math
+
+def haversine_distance(lat1, lon1, lat2, lon2) -> float:
+    """
+    Calculate distance in km between two GPS coordinates
+    using the Haversine formula.
+    """
+    R = 6371  # Earth's radius in km
+
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+
+    return R * c  # distance in km
+
+
+def check_impossible_travel(
+    user_id: int,
+    current_lat: float,
+    current_lon: float,
+    db
+) -> tuple[bool, float]:
+    """
+    Compare current login location with last login.
+    Returns (is_impossible, distance_km)
+    """
+    if current_lat is None or current_lon is None:
+        return False, 0
+
+    last_login = (
+        db.query(LoginHistory)
+        .filter(
+            LoginHistory.user_id == user_id,
+            LoginHistory.status == "success",
+            LoginHistory.latitude != None,
+            LoginHistory.longitude != None
+        )
+        .order_by(LoginHistory.login_time.desc())
+        .first()
+    )
+
+    if not last_login:
+        return False, 0
+
+    # Calculate distance
+    distance = haversine_distance(
+        last_login.latitude, last_login.longitude,
+        current_lat, current_lon
+    )
+
+    # Calculate time gap in hours
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    last_time = last_login.login_time
+    time_gap_hours = (now - last_time).total_seconds() / 3600
+
+    if time_gap_hours < 0.01:  # less than 36 seconds
+        time_gap_hours = 0.01
+
+    # Calculate speed needed
+    speed_kmh = distance / time_gap_hours
+
+    # Max commercial plane speed ~900 km/h
+    # We use 1000 to give some buffer
+    is_impossible = speed_kmh > 1000 and distance > 500
+
+    return is_impossible, distance
 
 # ─────────────────────────────────────────
 # Redis connection
@@ -94,11 +165,14 @@ def count_failed_attempts(user_id: int, db: Session) -> int:
 # ─────────────────────────────────────────
 # MAIN — Risk Engine
 # ─────────────────────────────────────────
+
 def calculate_risk(
     user_id: int,
     ip_address: str,
     device_hash: str,
     location: str,
+    latitude: float,
+    longitude: float,
     db: Session
 ) -> dict:
     """
@@ -126,6 +200,16 @@ def calculate_risk(
         if last_login.location != location and location != "unknown":
             risk_score += 40
             reasons.append(f"Location changed from {last_login.location} to {location}")
+
+    # ── Signal 3.5: Impossible Travel ──
+    is_impossible, distance = check_impossible_travel(
+        user_id, latitude, longitude, db
+    )
+    if is_impossible:
+       risk_score += 80
+       reasons.append(
+          f"Impossible travel detected — {int(distance)}km gap since last login"
+        )
 
     # ── Signal 4: Unusual login time ──
     if is_unusual_time(user_id, db):

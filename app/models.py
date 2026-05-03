@@ -25,9 +25,11 @@ class LoginHistory(Base):
     user_id     = Column(Integer, index=True, nullable=False)
     ip_address  = Column(String, nullable=True)
     location    = Column(String, nullable=True)   # e.g. "India"
+    latitude    = Column(Float, nullable=True)    
+    longitude   = Column(Float, nullable=True)    
     device      = Column(String, nullable=True)   # e.g. "chrome_windows"
     login_time  = Column(DateTime(timezone=True), server_default=func.now())
-    status      = Column(String, default="success")  # success / failed
+    status      = Column(String, default="success")
     risk_score  = Column(Float, default=0.0)
 
 
