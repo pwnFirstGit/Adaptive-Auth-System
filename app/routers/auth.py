@@ -106,14 +106,24 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         )
         db.add(otp_record)
         db.commit()
-
-        email_sent = send_otp_email(
-            to_email = user.email,
-            otp      = raw_otp
-        )
+    
+        try:
+            email_sent = send_otp_email(
+                to_email = user.email,
+                otp      = raw_otp
+            )
+        except Exception as e:
+            print(f"[Email] Non-critical failure: {e}")
+            email_sent = False
 
         if not email_sent:
-            raise HTTPException(status_code=500, detail="Failed to send OTP. Try again.")
+            # Delete unused OTP record
+            db.delete(otp_record)
+            db.commit()
+            raise HTTPException(
+                status_code=503,
+                detail="Email service temporarily unavailable. Please try again."
+            )
 
         return {
             "action"    : "require_otp",
