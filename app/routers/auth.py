@@ -103,9 +103,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         db.commit()
 
         email_sent = send_otp_email(
-            to_email  = user.email,
-            otp_code  = raw_otp,
-            user_name = user.email
+            to_email = user.email,
+            otp      = raw_otp
         )
 
         if not email_sent:
