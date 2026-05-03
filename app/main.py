@@ -23,6 +23,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",      # Your local React frontend
         "http://localhost:3000",      # Alternative local port
+        "https://adaptive-auth-frontend.onrender.com",
         "https://adaptive-auth-system.onrender.com"  # Production (if you have a frontend deployed)
     ],
     allow_credentials=True,            # Allow cookies & auth headers
