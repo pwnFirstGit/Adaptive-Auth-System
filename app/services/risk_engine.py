@@ -225,9 +225,7 @@ def calculate_risk(
     # ── Decision Engine ──
     if risk_score >= 100:
         action = "block"
-    elif risk_score >= 70:
-        action = "require_otp"
-    elif risk_score > 10:
+    elif risk_score >= 30:
         action = "require_otp"
     else:
         action = "allow"
