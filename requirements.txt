@@ -19,6 +19,7 @@ python-dotenv==1.2.2
 python-jose==3.5.0
 redis==7.4.0
 requests==2.33.1
+resend==2.0.0
 rsa==4.9.1
 six==1.17.0
 SQLAlchemy==2.0.49
